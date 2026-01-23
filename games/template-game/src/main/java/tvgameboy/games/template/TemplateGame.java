@@ -28,6 +28,10 @@ public final class TemplateGame implements Game {
         topBar.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 12, 12, 12));
         topBar.add(menuButton, BorderLayout.WEST);
 
+        JLabel projectLabel = new JLabel("Project", SwingConstants.RIGHT);
+        projectLabel.setForeground(new Color(245, 246, 248));
+        projectLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        topBar.add(projectLabel, BorderLayout.EAST);
         JLabel label = new JLabel("Replace this with your game.", SwingConstants.CENTER);
         label.setForeground(new Color(245, 246, 248));
         label.setFont(new Font("Segoe UI", Font.PLAIN, 18));
