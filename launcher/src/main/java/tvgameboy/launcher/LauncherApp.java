@@ -118,18 +118,63 @@ public final class LauncherApp {
         Font tileFont = new Font("Segoe UI", Font.BOLD, 18);
 
         if (index == 2 && entry == null) {
-            JButton button = new JButton("CAST");
-            button.setFont(new Font("Comic Sans MS", Font.BOLD, 18));
+            // Create a low-resolution tile using the supplied raft image (top-right crop)
+            JButton button = new JButton();
             button.setOpaque(true);
             button.setContentAreaFilled(true);
             button.setBorderPainted(false);
             button.setBackground(tileBackground);
-            button.setForeground(Color.WHITE);
             button.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(tileBorder),
-                    BorderFactory.createEmptyBorder(20, 16, 20, 16)
+                    BorderFactory.createEmptyBorder(8, 8, 8, 8)
             ));
             button.setFocusPainted(false);
+
+            // Attempt to fetch and pixelate the image for the tile icon; fall back to text if it fails
+            try {
+                URL url = new URL("https://images.stockcake.com/public/b/d/0/bd0c0ea7-48f6-4e80-8c4c-89e074cc5cf9_large/serene-ocean-raft-stockcake.jpg");
+                BufferedImage src = ImageIO.read(url);
+                if (src != null) {
+                    // crop top-right quadrant, like the full-screen view
+                    int iw = src.getWidth();
+                    int ih = src.getHeight();
+                    int cx = Math.max(0, iw / 2);
+                    int cy = 0;
+                    int cw = Math.max(1, iw - cx);
+                    int ch = Math.max(1, ih / 2);
+                    BufferedImage cropped = src.getSubimage(cx, cy, cw, ch);
+
+                    // create a very low-res small image then scale up to give chunky pixels
+                    int tw = 160;
+                    int th = 100;
+                    int factor = 12; // pixelation factor
+                    int sw = Math.max(1, tw / factor);
+                    int sh = Math.max(1, th / factor);
+                    BufferedImage small = new BufferedImage(sw, sh, BufferedImage.TYPE_INT_RGB);
+                    Graphics2D gSmall = small.createGraphics();
+                    gSmall.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                    gSmall.drawImage(cropped, 0, 0, sw, sh, null);
+                    gSmall.dispose();
+
+                    BufferedImage tileImg = new BufferedImage(tw, th, BufferedImage.TYPE_INT_RGB);
+                    Graphics2D gTile = tileImg.createGraphics();
+                    gTile.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+                    gTile.drawImage(small, 0, 0, tw, th, null);
+                    gTile.dispose();
+
+                    button.setIcon(new ImageIcon(tileImg));
+                } else {
+                    button.setText("CAST");
+                    button.setForeground(Color.WHITE);
+                    button.setFont(new Font("Comic Sans MS", Font.BOLD, 18));
+                }
+            } catch (IOException ex) {
+                button.setText("CAST");
+                button.setForeground(Color.WHITE);
+                button.setFont(new Font("Comic Sans MS", Font.BOLD, 18));
+            }
+
+            // hover effects
             button.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseEntered(MouseEvent event) {
@@ -212,15 +257,24 @@ public final class LauncherApp {
                 }
 
                 if (img != null) {
-                    // Pixelate by scaling down then up using nearest-neighbor.
-                    int scale = Math.max(6, Math.min(24, Math.min(w, h) / 40));
-                    int sw = Math.max(1, w / scale);
-                    int sh = Math.max(1, h / scale);
+                    // Crop the top-right tile of the source image (upper-right quadrant)
+                    int iw = img.getWidth();
+                    int ih = img.getHeight();
+                    int cx = Math.max(0, iw / 2);
+                    int cy = 0;
+                    int cw = Math.max(1, iw - cx);
+                    int ch = Math.max(1, ih / 2);
+                    BufferedImage cropped = img.getSubimage(cx, cy, cw, ch);
+
+                    // Force low resolution: scale the cropped image down then back up (strong pixelation)
+                    int pixelFactor = Math.max(16, Math.min(48, Math.min(w, h) / 20));
+                    int sw = Math.max(1, w / pixelFactor);
+                    int sh = Math.max(1, h / pixelFactor);
 
                     BufferedImage small = new BufferedImage(sw, sh, BufferedImage.TYPE_INT_RGB);
                     Graphics2D gSmall = small.createGraphics();
                     gSmall.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-                    gSmall.drawImage(img, 0, 0, sw, sh, null);
+                    gSmall.drawImage(cropped, 0, 0, sw, sh, null);
                     gSmall.dispose();
 
                     g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
